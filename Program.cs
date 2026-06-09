@@ -1,11 +1,17 @@
+using game_platform;
 using game_platform.Middleware;
 using game_platform.Models;
 using Microsoft.AspNetCore.HttpOverrides;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+var config = builder.Configuration.Get<Config>() ??
+    throw new Exception("Bad config");
+
+builder.Services.AddSingleton(config);
+
+builder.Services.AddTransient(sp => sp.GetRequiredService<Config>().Telegram);
+
 builder.Services.AddOpenApi();
 
 
