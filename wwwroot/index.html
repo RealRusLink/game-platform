@@ -1,10 +1,119 @@
 ﻿<!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Hello</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Telegram Mini App - Ping Pong</title>
+
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--tg-theme-bg-color, #ffffff);
+            color: var(--tg-theme-text-color, #000000);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 90vh;
+        }
+        .card {
+            background-color: var(--tg-theme-secondary-bg-color, #f0f0f0);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            max-width: 400px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        pre {
+            background: #272822;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 14px;
+        }
+        button {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            background-color: var(--tg-theme-button-color, #2481cc);
+            color: var(--tg-theme-button-text-color, #ffffff);
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 15px;
+        }
+        .error {
+            color: #e53935;
+            font-weight: bold;
+        }
+    </style>
 </head>
 <body>
-    <header>This is miniapp test</header>
+
+<div class="card">
+    <h2>Mini App Auth Test</h2>
+    <div id="status">Инициализация Телеграма...</div>
+
+    <button id="pingBtn" style="display: none;">Отправить Ping на Бэкенд</button>
+
+    <h3>Ответ сервера:</h3>
+    <pre id="response-output">Ожидание действия...</pre>
+</div>
+
+<script>
+        const tg = window.Telegram.WebApp;
+
+    const statusDiv = document.getElementById('status');
+    const pingBtn = document.getElementById('pingBtn');
+    const output = document.getElementById('response-output');
+
+        tg.ready();
+    tg.expand(); 
+        if (!tg.initData) {
+        statusDiv.innerHTML = "<span class='error'>Ошибка: Приложение запущено вне Telegram!</span>";
+    } else {
+        statusDiv.innerHTML = `Привет, <b>${tg.initDataUnsafe.user?.first_name || 'Пользователь'}</b>!`;
+        pingBtn.style.display = 'block';
+    }
+
+        pingBtn.addEventListener('click', async () => {
+        output.textContent = "Отправка запроса...";
+
+                const backendUrl = '/api/profile';
+
+        try {
+                        const response = await fetch(backendUrl, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                                        'Authorization': `tma ${tg.initData}`
+                }
+            });
+
+            if (!response.ok) {
+                if (response.status === 401) {
+                    output.innerHTML = "<span class='error'>Ошибка 401: Сервер отклонил валидацию Telegram!</span>";
+                } else {
+                    output.innerHTML = `<span class='error'>Ошибка сервера: Статус ${response.status}</span>`;
+                }
+                return;
+            }
+
+                        const data = await response.json();
+            output.textContent = JSON.stringify(data, null, 2);
+
+        } catch (error) {
+            output.innerHTML = `<span class='error'>Сетевая ошибка: ${error.message}</span>`;
+        }
+    });
+</script>
 </body>
 </html>
