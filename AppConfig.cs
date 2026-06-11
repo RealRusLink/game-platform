@@ -5,10 +5,10 @@ using System.ComponentModel.DataAnnotations;
 public class AppConfig
 {
     [Required]
-    public MongoConfig Mongo { get; set; } = null!;
+    public MongoConfig MongoConfig { get; set; } = null!;
 
     [Required]
-    public TelegramConfig Telegram { get; set; } = null!;
+    public TelegramConfig TelegramConfig { get; set; } = null!;
 }
 
 public class MongoConfig

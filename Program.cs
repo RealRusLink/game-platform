@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Text.Json;
 using game_platform;
 using game_platform.Endpoints;
 using game_platform.Middleware;
@@ -48,7 +49,11 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
     options.KnownNetworks.Clear();
     options.KnownProxies.Clear();
 });
-
+builder.Services.ConfigureHttpJsonOptions(options =>
+{
+    options.SerializerOptions.Converters.Add(new OptionJsonConverterFactory());
+    options.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+});
 
 var app = builder.Build();
 

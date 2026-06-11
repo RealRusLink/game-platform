@@ -1,6 +1,7 @@
-﻿appsettings.Development.json
+appsettings.Development.json
 appsettings.json
 .idea
 bin
 obj
 Folder.DotSettings.user
+game-platform.http
