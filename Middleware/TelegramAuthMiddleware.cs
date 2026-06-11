@@ -11,12 +11,12 @@ public class TelegramAuthMiddleware
     private readonly RequestDelegate _next;
     private readonly int _maxage;
     private readonly byte[] _botTokenHash;
-    public TelegramAuthMiddleware(RequestDelegate next, Config.TelegramSection tg)
+    public TelegramAuthMiddleware(RequestDelegate next, TelegramConfig tg)
     {
         _next = next;
         using var hmac = new HMACSHA256("WebAppData"u8.ToArray());
         _botTokenHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(tg.BotToken));
-        _maxage = tg.AuthTokenAge;
+        _maxage = tg.AuthTokenExpireAge;
     }
     public async Task InvokeAsync(HttpContext context)
     {

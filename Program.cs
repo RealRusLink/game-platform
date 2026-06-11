@@ -1,16 +1,43 @@
+using System.Reflection;
 using game_platform;
 using game_platform.Endpoints;
 using game_platform.Middleware;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var config = builder.Configuration.Get<Config>() ??
-    throw new Exception("Bad config");
+#region Register config
 
-builder.Services.AddSingleton(config);
+builder.Services.AddOptions<AppConfig>()
+    .Bind(builder.Configuration.GetSection("AppConfig"))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+builder.Services.AddSingleton<AppConfig>(sp => sp.GetRequiredService<IOptions<AppConfig>>().Value);
 
-builder.Services.AddTransient(sp => sp.GetRequiredService<Config>().Telegram);
+
+Type rootType = typeof(AppConfig);
+PropertyInfo[] properties = rootType.GetProperties();
+foreach (PropertyInfo property in properties)
+{
+    if (property.PropertyType.Namespace == "System" && !property.PropertyType.IsGenericType)
+    {
+        continue;
+    }
+    Type nestedType = property.PropertyType;
+    builder.Services.AddSingleton(nestedType, sp =>
+    {
+        AppConfig rootConfig = sp.GetRequiredService<AppConfig>();
+        object? nestedConfig = property.GetValue(rootConfig);
+        if (nestedConfig == null)
+        {
+            throw new InvalidOperationException($"Config {property.Name} is null.");
+        }
+        return nestedConfig;
+    });
+}
+
+#endregion
 
 builder.Services.AddOpenApi();
 
