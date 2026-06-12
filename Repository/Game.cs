@@ -2,6 +2,7 @@
 using game_platform.Models;
 using MongoDB.Bson;
 using MongoDB.Driver;
+using Optional.Unsafe;
 
 namespace game_platform.Repository;
 
@@ -79,6 +80,63 @@ public class Game
         return newGame == null ? null : new GamePublic(newGame);
     }
     
+    public async Task<Models.PlayerPublic?> GetAuthorizedGamePlayer(string gameId, long authorId, long playerId)
+    {
+        var player = await _games
+            .Find(game => game.Id == gameId && game.AuthorUserId == authorId)
+            .Project(g => g.Players
+            .FirstOrDefault(p => p.UserId == playerId))
+            .FirstOrDefaultAsync();
+        return player == null ? null : new PlayerPublic(player);
+    }
     
+    public async Task<Models.PlayerPublic?> UpdatePlayer(PlayerUpdate playerUpdate, string gameId, long authorId, long playerId)
+    {
+        var filter = Builders<Models.Game>.Filter.And(
+            Builders<Models.Game>.Filter.Eq(game => game.Id, gameId),
+            Builders<Models.Game>.Filter.Eq(game => game.AuthorUserId, authorId),
+            Builders<Models.Game>.Filter.ElemMatch(g => g.Players, p => p.UserId == playerId));
+        
+        var update = Builders<Models.Game>.Update.Set("Players.$.Name", playerUpdate.Name.ValueOrDefault());
+        
+        var result = await _games.FindOneAndUpdateAsync(filter, update, new FindOneAndUpdateOptions<Models.Game>()
+        {
+            ReturnDocument = ReturnDocument.After
+        });
+        return result == null ? null : new PlayerPublic((result.Players.Find(p => p.UserId == playerId)));
+    }
+    
+    public async Task<PlayerPublic?> CreatePlayer(PlayerCreate player, string gameId, long authorId, long playerId)
+    {
+        var filter = Builders<Models.Game>.Filter.And(
+            Builders<Models.Game>.Filter.Eq(game => game.Id, gameId),
+            Builders<Models.Game>.Filter.Eq(game => game.AuthorUserId, authorId)
+        );
+        var update = Builders<Models.Game>.Update.Push(game => game.Players, new Player(player, playerId));
+        var options = new FindOneAndUpdateOptions<Models.Game>
+        {
+            ReturnDocument = ReturnDocument.After,
+        };
+        var game = await _games.FindOneAndUpdateAsync(filter, update, options);
+        return game == null ? null : new PlayerPublic(game.Players.FirstOrDefault(player => player.UserId == playerId));
+    }
+    
+    
+    public async Task<bool?> DeletePlayer(string gameId, long authorId, long playerId)
+    {
+        var filter = Builders<Models.Game>.Filter.And(
+            Builders<Models.Game>.Filter.Eq(game => game.Id, gameId),
+            Builders<Models.Game>.Filter.Eq(game => game.AuthorUserId, authorId)
+        );
+        var update = Builders<Models.Game>.Update
+            .PullFilter(
+                game => game.Players, 
+                player => player.UserId == playerId
+            );
+        
+        var result = await _games.UpdateOneAsync(filter, update);
+        
+        return result == null ? null : (result.IsAcknowledged && result.ModifiedCount > 0);
+    }
     
 }
