@@ -4,7 +4,7 @@ Features to implement:
 - "Game" entity, which can be created by user, who will be administator of created game [+]
 - Connecting players to games [+] 
 - Managing players [+] 
-- Inventory with categories for players [] 
+- Inventory with categories for players [+] 
 - Currency balance items in player inventories [+] 
 - Inventories management for game authors [+] 
 - Uploading images and creating layered maps from them
