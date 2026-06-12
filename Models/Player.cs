@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Nodes;
 using game_platform.Helpers;
+using MongoDB.Bson;
 using Optional;
 
 namespace game_platform.Models;
@@ -8,27 +9,50 @@ namespace game_platform.Models;
 
 public class PlayerUpdate
 {
-    [OptionNotNull<JsonObject>]
+    [OptionNotNull<string>]
     [OptionStringLength(max: 20, min: 3)]
-    public Option<string> Name { get; set; }
-
-    [OptionNotNull<JsonObject>]
-    public Option<JsonObject> Inventory { get; set; }
+    public required Option<string> Name { get; set; }
 }
 
 
 public class PlayerCreate
 {
+    [Required]
     [StringLength(maximumLength: 20, MinimumLength = 3)]
     public required string Name { get; set; }
 }
+
+
+
+public class PlayerPublic
+{
+    public string Name { get; set; }
+    public long UserId { get; set; }
+    
+    public PlayerPublic(Player player)
+    {
+        Name = player.Name;
+        UserId = player.UserId;
+    }
+    
+    
+}
+
 
 
 public class Player
 {
     public long UserId { get; set; }
     public string Name { get; set; }
-    public JsonObject Inventory { get; set; }
+    public BsonDocument Inventory { get; set; }
+    
+    public Player(PlayerCreate player, long playerId)
+    {
+        Name = player.Name;
+        UserId = playerId;
+        Inventory = new BsonDocument();
+    }
+
 }
 
 
