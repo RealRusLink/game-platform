@@ -139,4 +139,80 @@ public class Game
         return result == null ? null : (result.IsAcknowledged && result.ModifiedCount > 0);
     }
     
+    public async Task<BsonDocument?> GetInventory(string gameId, long authorId, long playerId)
+    {
+        var player = await _games
+            .Find(game => game.Id == gameId && game.AuthorUserId == authorId)
+            .Project(g => g.Players.FirstOrDefault(p => p.UserId == playerId))
+            .FirstOrDefaultAsync();
+
+        return player?.Inventory;
+    }
+
+    public async Task<BsonDocument?> SaveInventory(string gameId, long authorId, long playerId, BsonDocument inventory)
+    {
+        var filter = Builders<Models.Game>.Filter.And(
+            Builders<Models.Game>.Filter.Eq(game => game.Id, gameId),
+            Builders<Models.Game>.Filter.Eq(game => game.AuthorUserId, authorId),
+            Builders<Models.Game>.Filter.ElemMatch(g => g.Players, p => p.UserId == playerId)
+        );
+
+        var update = Builders<Models.Game>.Update.Set("Players.$.Inventory", inventory);
+
+        var result = await _games.FindOneAndUpdateAsync(filter, update, new FindOneAndUpdateOptions<Models.Game>
+        {
+            ReturnDocument = ReturnDocument.After
+        });
+
+        return result?.Players.Find(p => p.UserId == playerId)?.Inventory;
+    }
+    
+    
+    public async Task<bool?> InventoryContains(string gameId, long authorId, long playerId, string searchValue)
+    {
+        var player = await _games
+            .Find(game => game.Id == gameId && game.AuthorUserId == authorId)
+            .Project(g => g.Players.FirstOrDefault(p => p.UserId == playerId))
+            .FirstOrDefaultAsync();
+
+        if (player == null) return null; 
+
+        return player.Inventory?.ToJson().Contains(searchValue, StringComparison.OrdinalIgnoreCase) ?? false;
+    }
+    
+    public async Task<List<Models.GamePublic>> GetPlayerGames(long playerId)
+    {
+        var games = await _games
+            .Find(game => game.Players.Any(p => p.UserId == playerId))
+            .ToListAsync();
+
+        return games.Select(g => new GamePublic(g)).ToList();
+    }
+
+    public async Task<Models.Player?> GetPlayerSelf(string gameId, long playerId)
+    {
+        return await _games
+            .Find(game => game.Id == gameId)
+            .Project(g => g.Players.FirstOrDefault(p => p.UserId == playerId))
+            .FirstOrDefaultAsync();
+    }
+    
+    public async Task<Models.PlayerPublic?> UpdatePlayerSelf(PlayerUpdate playerUpdate, string gameId, long playerId)
+    {
+        var filter = Builders<Models.Game>.Filter.And(
+            Builders<Models.Game>.Filter.Eq(game => game.Id, gameId),
+            Builders<Models.Game>.Filter.ElemMatch(g => g.Players, p => p.UserId == playerId)
+        );
+
+        var update = Builders<Models.Game>.Update.Set("Players.$.Name", playerUpdate.Name.ValueOrDefault());
+
+        var result = await _games.FindOneAndUpdateAsync(filter, update, new FindOneAndUpdateOptions<Models.Game>
+        {
+            ReturnDocument = ReturnDocument.After
+        });
+
+        return result == null ? null : new PlayerPublic(result.Players.Find(p => p.UserId == playerId));
+    }
+    
+    
 }
