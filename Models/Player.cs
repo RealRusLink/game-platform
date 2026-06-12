@@ -8,9 +8,11 @@ namespace game_platform.Models;
 
 public class PlayerUpdate
 {
-    [OptionStringLength(max:20, min: 3)]
+    [OptionNotNull<JsonObject>]
+    [OptionStringLength(max: 20, min: 3)]
     public Option<string> Name { get; set; }
-    
+
+    [OptionNotNull<JsonObject>]
     public Option<JsonObject> Inventory { get; set; }
 }
 
