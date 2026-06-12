@@ -3,8 +3,10 @@ using System.Text.Json;
 using game_platform;
 using game_platform.Endpoints;
 using game_platform.Middleware;
+using game_platform.Repository;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Options;
+using MongoDB.Driver;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -34,13 +36,14 @@ foreach (PropertyInfo property in properties)
         {
             throw new InvalidOperationException($"Config {property.Name} is null.");
         }
-        return nestedConfig;
+        return nestedConfig;    
     });
 }
 
 #endregion
 
 builder.Services.AddOpenApi();
+builder.Services.AddValidation();
 
 
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
@@ -52,8 +55,39 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
     options.SerializerOptions.Converters.Add(new OptionJsonConverterFactory());
-    options.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+    options.SerializerOptions.PropertyNamingPolicy = null;
 });
+
+builder.Services.AddProblemDetails(options =>
+{
+    options.CustomizeProblemDetails = ctx =>
+    {
+        ctx.ProblemDetails.Extensions.Remove("exception");
+    };
+});
+
+#region Register DB
+
+builder.Services.AddSingleton<IMongoClient>(sp =>
+{
+    var settings = sp.GetRequiredService<MongoConfig>(); 
+    return new MongoClient(settings.ConnectionString);
+});
+
+builder.Services.AddScoped(sp =>
+{
+    var settings = sp.GetRequiredService<MongoConfig>();
+    return sp.GetRequiredService<IMongoClient>().GetDatabase(settings.DatabaseName);
+});
+
+#endregion
+
+#region Register repositories
+
+builder.Services.AddScoped<game_platform.Repository.User>();
+builder.Services.AddScoped<game_platform.Repository.Game>();
+
+#endregion
 
 var app = builder.Build();
 
