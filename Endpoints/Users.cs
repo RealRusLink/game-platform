@@ -7,9 +7,14 @@ public class Users : IEndpointModule
 {
     public void MapEndpoints(IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("api/users");
+        var group = app.MapGroup("api/users")
+            .WithTags("Users")
+            .WithOpenApi();
 
-        group.MapGet("", getUsers);
+        group.MapGet("", getUsers)
+            .WithName("GetAllUsers")
+            .WithSummary("List all registered users")
+            .Produces<List<TelegramUser>>();
 
     }
 

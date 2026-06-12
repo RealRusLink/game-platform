@@ -21,6 +21,14 @@ public class TelegramAuthMiddleware
     }
     public async Task InvokeAsync(HttpContext context, game_platform.Repository.User users)
     {
+        
+        var path = context.Request.Path.Value ?? "";
+        if (path.StartsWith("/openapi") || path.StartsWith("/scalar"))
+        {
+            await _next(context);
+            return;
+        }
+        
         string? authHeader = context.Request.Headers["Authorization"];
 
         if (string.IsNullOrEmpty(authHeader) || !authHeader.StartsWith("tma "))

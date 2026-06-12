@@ -6,9 +6,14 @@ public class ProfileEndpoints : IEndpointModule
 {
     public void MapEndpoints(IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("api/profile");
+        var group = app.MapGroup("api/profile")
+            .WithTags("Profile")
+            .WithOpenApi();
 
-        group.MapGet("", getProfile);
+        group.MapGet("", getProfile)
+            .WithName("GetProfile")
+            .WithSummary("Get the currently authenticated user")
+            .Produces<TelegramUser>();
 
     }
 

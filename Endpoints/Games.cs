@@ -6,13 +6,39 @@ public class Games : IEndpointModule
 {
     public void MapEndpoints(IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("api/games");
+        var group = app.MapGroup("api/admin/games")            
+            .WithTags("Games (Admin)")
+            .WithOpenApi();
         
-        group.MapGet("", getGames);
-        group.MapPost("", createGame);
-        group.MapGet("{gameId}", getGame);
-        group.MapPatch("{gameId}", updateGame);
-        group.MapDelete("{gameId}", deleteGame);
+        group.MapGet("", getGames)
+            .WithName("GetGames")
+            .WithSummary("List IDs of all games created by the current author")
+            .Produces<List<string>>();
+
+        group.MapPost("", createGame)
+            .WithName("CreateGame")
+            .WithSummary("Create a new game")
+            .Produces<GamePublic>(StatusCodes.Status200OK)
+            .ProducesValidationProblem();
+
+        group.MapGet("{gameId}", getGame)
+            .WithName("GetGame")
+            .WithSummary("Get a game by ID (author only)")
+            .Produces<GamePublic>()
+            .Produces(StatusCodes.Status404NotFound);
+
+        group.MapPatch("{gameId}", updateGame)
+            .WithName("UpdateGame")
+            .WithSummary("Partially update game fields (author only)")
+            .Produces<GamePublic>()
+            .Produces(StatusCodes.Status404NotFound)
+            .ProducesValidationProblem();
+
+        group.MapDelete("{gameId}", deleteGame)
+            .WithName("DeleteGame")
+            .WithSummary("Delete a game (author only)")
+            .Produces(StatusCodes.Status204NoContent)
+            .Produces(StatusCodes.Status404NotFound);
 
     }
     private static async Task<IResult> getGames(TelegramUser user, Repository.Game gamesRepo)

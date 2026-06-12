@@ -92,10 +92,7 @@ builder.Services.AddScoped<game_platform.Repository.Game>();
 var app = builder.Build();
 
 app.UseForwardedHeaders();
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
-}
+app.MapOpenApi();
 app.UseHttpsRedirection();
 
 #region Serve static
