@@ -1,4 +1,6 @@
 ﻿using game_platform.Models;
+using MongoDB.Bson;
+using MongoDB.Bson.Serialization;
 using Game = game_platform.Repository.Game;
 
 namespace game_platform.Endpoints;
@@ -7,13 +9,53 @@ public class Players : IEndpointModule
 {
     public void MapEndpoints(IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("api/games/{gameId}/players");
+        var group = app.MapGroup("api/admin/games/{gameId}/players/{playerId}")
+            .WithTags("Players (Admin)")
+            .WithOpenApi();
 
-        group.MapPost("{playerId}", createPlayer);
-        group.MapGet("{playerId}", getPlayer);
-        group.MapDelete("{playerId}", deletePlayer);
-        group.MapPatch("{playerId}", updatePlayer);
+        group.MapPost("", createPlayer)
+            .WithName("CreatePlayer")
+            .WithSummary("Add a player to the game")
+            .Produces<PlayerPublic>()
+            .Produces(StatusCodes.Status400BadRequest)
+            .Produces(StatusCodes.Status404NotFound);
 
+        group.MapGet("", getPlayer)
+            .WithName("GetPlayer")
+            .WithSummary("Get player data")
+            .Produces<PlayerPublic>()
+            .Produces(StatusCodes.Status404NotFound);
+
+        group.MapDelete("", deletePlayer)
+            .WithName("DeletePlayer")
+            .WithSummary("Remove a player from the game")
+            .Produces(StatusCodes.Status204NoContent)
+            .Produces(StatusCodes.Status404NotFound);
+
+        group.MapPatch("", updatePlayer)
+            .WithName("UpdatePlayer")
+            .WithSummary("Update a player's name (author action)")
+            .Produces<PlayerPublic>()
+            .Produces(StatusCodes.Status404NotFound);
+
+        group.MapGet("inventory", getInventory)
+            .WithName("GetInventory")
+            .WithSummary("Get the player's inventory")
+            .Produces<object>()
+            .Produces(StatusCodes.Status404NotFound);
+
+        group.MapPut("inventory", saveInventory)
+            .WithName("SaveInventory")
+            .WithSummary("Fully replace the player's inventory")
+            .Produces<object>()
+            .Produces(StatusCodes.Status404NotFound)    
+            .WithOpenApi(op =>
+            {
+                op.RequestBody.Description = 
+                    "Full player inventory as a JSON object following the inventory contract";
+                return op;
+            })
+            .ProducesValidationProblem();
     }
 
     private static async Task<IResult> createPlayer(TelegramUser user, PlayerCreate player, string gameId, long playerId, Game games)
@@ -51,5 +93,20 @@ public class Players : IEndpointModule
             _ => Results.Json(result)
         };
     }
+    
+    
+    private static async Task<IResult> getInventory(TelegramUser user, string gameId, long playerId, Game games)
+    {
+        var inventory = await games.GetInventory(gameId, user.Id, playerId);
+        return inventory == null ? Results.NotFound() : Results.Json(BsonSerializer.Deserialize<object>(inventory));
+    }
+
+    private static async Task<IResult> saveInventory(TelegramUser user, InventoryUpdate body, string gameId, long playerId, Game games)
+    {
+        var bsonDoc = BsonDocument.Parse(body.Inventory.ToJsonString());
+        var result = await games.SaveInventory(gameId, user.Id, playerId, bsonDoc);
+        return result == null ? Results.NotFound() : Results.Json(BsonSerializer.Deserialize<object>(result));
+    }
+    
     
 }
