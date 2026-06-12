@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using System.Web;
 using game_platform.Models;
+using game_platform.Repository;
 
 namespace game_platform.Middleware;
 
@@ -18,7 +19,7 @@ public class TelegramAuthMiddleware
         _botTokenHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(tg.BotToken));
         _maxage = tg.AuthTokenExpireAge;
     }
-    public async Task InvokeAsync(HttpContext context)
+    public async Task InvokeAsync(HttpContext context, game_platform.Repository.User users)
     {
         string? authHeader = context.Request.Headers["Authorization"];
 
@@ -35,8 +36,8 @@ public class TelegramAuthMiddleware
             context.Response.StatusCode = StatusCodes.Status401Unauthorized;
             return;
         }
+        await users.RegisterUserIfNotExists(user);
         context.Items["TelegramUser"] = user;
-
         await _next(context);
     }
     
