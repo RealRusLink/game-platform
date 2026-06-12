@@ -20,6 +20,7 @@ public class Players : IEndpointModule
         
     private static IResult updatePlayer(TelegramUser user, PlayerUpdate player)
     {
+        
         return Results.Json(player);
     }
     
