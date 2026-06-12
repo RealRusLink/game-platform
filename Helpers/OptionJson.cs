@@ -19,6 +19,9 @@ public class OptionJsonConverter<T> : JsonConverter<Option<T>>
 {
     public override Option<T> Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
+        if (reader.TokenType == System.Text.Json.JsonTokenType.Null)
+            return Option.Some(default(T)!); 
+
         T? value = JsonSerializer.Deserialize<T>(ref reader, options);
         return Option.Some(value!);
     }

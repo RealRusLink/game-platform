@@ -16,17 +16,47 @@ public class OptionStringLengthAttribute : ValidationAttribute
 
     protected override ValidationResult? IsValid(object? value, ValidationContext validationContext)
     {
-        if (value is Option<string?> option)
+        if (value is Option<string> optionNonNull)
         {
-            option.Match(
-                some: str => {
-                    if (str != null && (str.Length < _min || str.Length > _max))
-                        return new ValidationResult($"Length must be from {_min} to {_max}");
+            return optionNonNull.Match(
+                some: str =>
+                {
+                    if (str.Length < _min || str.Length > _max)
+                        return new ValidationResult($"Length must be from {_min} to {_max}", [validationContext.MemberName!]);
                     return ValidationResult.Success;
                 },
-                none: () => ValidationResult.Success 
+                none: () => ValidationResult.Success
             );
         }
+
+        if (value is Option<string?> optionNullable)
+        {
+            return optionNullable.Match(
+                some: str =>
+                {
+                    if (str != null && (str.Length < _min || str.Length > _max))
+                        return new ValidationResult($"Length must be from {_min} to {_max}", [validationContext.MemberName!]);
+                    return ValidationResult.Success;
+                },
+                none: () => ValidationResult.Success
+            );
+        }
+
         return ValidationResult.Success;
+    }
+}
+
+public class OptionNotNullAttribute<T> : ValidationAttribute
+{
+    protected override ValidationResult? IsValid(object? value, ValidationContext validationContext)
+    {
+        if (value is not Option<T> option) return ValidationResult.Success;
+
+        return option.Match(
+            some: v => v is null
+                ? new ValidationResult("Value cannot be null", [validationContext.MemberName!])
+                : ValidationResult.Success,
+            none: () => ValidationResult.Success
+        );
     }
 }
