@@ -2,6 +2,7 @@
 using System.Text.Json.Nodes;
 using game_platform.Helpers;
 using MongoDB.Bson;
+using MongoDB.Bson.Serialization;
 using Optional;
 
 namespace game_platform.Models;
@@ -53,6 +54,25 @@ public class Player
         Inventory = new BsonDocument();
     }
 
+}
+
+public class InventoryUpdate
+{
+    public required JsonNode Inventory { get; set; }
+}
+
+public class PlayerSelf
+{
+    public string Name { get; set; }
+    public object? Inventory { get; set; }
+
+    public PlayerSelf(Player player)
+    {
+        Name = player.Name;
+        Inventory = player.Inventory == null
+            ? null
+            : BsonSerializer.Deserialize<object>(player.Inventory);
+    }
 }
 
 
